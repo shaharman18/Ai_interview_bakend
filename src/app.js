@@ -7,7 +7,11 @@ const cors = require('cors');
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // support both common local dev URLs
+  origin: [
+    'http://localhost:5173', 
+    'http://127.0.0.1:5173',
+    process.env.FRONTEND_URL
+  ].filter(Boolean), // remove undefined if FRONTEND_URL is not set
   credentials: true
 }));
 
