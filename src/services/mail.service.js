@@ -1,13 +1,14 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
-// Debugging logs to verify env variables (Do not share these in production logs usually)
-// console.log("GMAIL_USER:", process.env.GMAIL_USER ? "Defined" : "UNDEFINED");
-// console.log("GMAIL_PASS:", process.env.GMAIL_APP_PASSWORD ? "Defined" : "UNDEFINED");
+// Force Node.js to prioritize IPv4 over IPv6. 
+// This fixes the 'ENETUNREACH' error on platforms like Render.
+dns.setDefaultResultOrder('ipv4first');
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // use SSL
+    port: 587,
+    secure: false, // Use STARTTLS
     auth: {
         user: (process.env.GMAIL_USER || '').trim(),
         pass: (process.env.GMAIL_APP_PASSWORD || '').trim().replace(/\s/g, '') // remove any spaces
