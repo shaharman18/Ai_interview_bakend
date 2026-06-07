@@ -1,32 +1,30 @@
-const nodemailer = require('nodemailer');
-const dns = require('dns');
+const { Resend } = require('resend');
 
-// Force Node.js to prioritize IPv4 over IPv6. 
-// This fixes the 'ENETUNREACH' error on platforms like Render.
-dns.setDefaultResultOrder('ipv4first');
+let resendClient = null;
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // Use STARTTLS
-    auth: {
-        user: (process.env.GMAIL_USER || '').trim(),
-        pass: (process.env.GMAIL_APP_PASSWORD || '').trim().replace(/\s/g, '') 
+const getResendClient = () => {
+    if (!resendClient) {
+        const apiKey = (process.env.RESEND_API_KEY || '').trim();
+        if (!apiKey) {
+            console.warn("Warning: RESEND_API_KEY is not set. Emails will fail to send.");
+            return null;
+        }
+        resendClient = new Resend(apiKey);
     }
-});
-
-// Verify connection configuration
-transporter.verify(function (error, success) {
-    if (error) {
-        console.error("Mail Transporter Error:", error.message);
-    } else {
-        console.log("Mail Server is ready to take our messages");
-    }
-});
+    return resendClient;
+};
 
 const sendOTP = async (email, otp) => {
-    const mailOptions = {
-        from: `"Interview AI" <${process.env.GMAIL_USER}>`,
+    const client = getResendClient();
+    if (!client) {
+        throw new Error("RESEND_API_KEY is missing");
+    }
+
+    const fromEmail = (process.env.RESEND_FROM_EMAIL || process.env.GMAIL_USER || 'onboarding@resend.dev').trim();
+    const fromName = 'Interview AI';
+
+    return client.emails.send({
+        from: `"${fromName}" <${fromEmail}>`,
         to: email,
         subject: 'Verification Code for Interview AI',
         html: `
@@ -42,14 +40,20 @@ const sendOTP = async (email, otp) => {
                 <p style="font-size: 12px; color: #888; text-align: center;">&copy; 2026 Interview AI. All rights reserved.</p>
             </div>
         `
-    };
-
-    return transporter.sendMail(mailOptions);
+    });
 };
 
 const sendPasswordReset = async (email, otp) => {
-    const mailOptions = {
-        from: `"Interview AI" <${process.env.GMAIL_USER}>`,
+    const client = getResendClient();
+    if (!client) {
+        throw new Error("RESEND_API_KEY is missing");
+    }
+
+    const fromEmail = (process.env.RESEND_FROM_EMAIL || process.env.GMAIL_USER || 'onboarding@resend.dev').trim();
+    const fromName = 'Interview AI';
+
+    return client.emails.send({
+        from: `"${fromName}" <${fromEmail}>`,
         to: email,
         subject: 'Password Reset Code - Interview AI',
         html: `
@@ -65,9 +69,7 @@ const sendPasswordReset = async (email, otp) => {
                 <p style="font-size: 12px; color: #888; text-align: center;">&copy; 2026 Interview AI. All rights reserved.</p>
             </div>
         `
-    };
-
-    return transporter.sendMail(mailOptions);
+    });
 };
 
 module.exports = { sendOTP, sendPasswordReset };
